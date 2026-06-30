@@ -28,7 +28,7 @@
         <div class="bg-white p-8 rounded-2xl shadow-md max-w-md w-full border border-slate-200">
             <div class="text-center mb-6">
                 <span class="text-3xl font-bold text-[#ff9900] tracking-tight"></span>
-                <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded ml-1 font-mono"></span>
+                <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded ml-1 font-mono">games</span>
             </div>
 
             <div id="login-error" class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 hidden"></div>
@@ -40,7 +40,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1 uppercase">Email Address</label>
-                        <input id="login-email" type="email" class="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ff9900]" placeholder="student@school.uk" />
+                        <input id="login-email" type="email" class="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ff9900]" placeholder="something@something.com" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1 uppercase">Password</label>
@@ -80,10 +80,8 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1 uppercase">Account Type / Role</label>
                         <select id="signup-role" onchange="handleRoleChange()" class="w-full px-4 py-2 border border-slate-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[#ff9900] text-sm text-slate-700">
-                            <option value="Student">Student (No code required)</option>
-                            <option value="Teacher">Teacher / Tutor</option>
-                            <option value="Parent">Parent / Guardian</option>
-                            <option value="IT Staff">IT Support Staff</option>
+                            <option value="gamer">you do not want to add you own code</option>
+                            <option value="developer">you will be allowed to add your own coded games</option>
                         </select>
                     </div>
                     <div id="school-code-box" class="hidden">
@@ -104,147 +102,6 @@
 
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            applyGlobalAccessibilityStateTokens();
-        });
-
-        function toggleAuthView(showSignup) {
-            const errorBox = document.getElementById('login-error');
-            if(errorBox) errorBox.classList.add('hidden');
-            
-            if (showSignup) {
-                document.getElementById('signin-section').classList.add('hidden');
-                document.getElementById('signup-section').classList.remove('hidden');
-                handleRoleChange();
-            } else {
-                document.getElementById('signup-section').classList.add('hidden');
-                document.getElementById('signin-section').classList.remove('hidden');
-            }
-        }
-
-        function handleRoleChange() {
-            const role = document.getElementById('signup-role').value;
-            const codeBox = document.getElementById('school-code-box');
-            if (role === 'Student') {
-                codeBox.classList.add('hidden');
-            } else {
-                codeBox.classList.remove('hidden');
-            }
-        }
-
-        function handleGuestAccess() {
-            // Keep a random dummy token to prove this is a guest
-            localStorage.setItem('system_auth_checksum', 'guest_mode_active');
-            localStorage.setItem('activeSession', 'Guest User');
-            localStorage.setItem('activePathway', 'Temporary View (No Saved Data)');
-            window.location.href = './dashboard.html';
-        }
-
-        // SECURE REGISTRATION VIA SERVER API
-        async function handlePortalRegistration() {
-            const name = document.getElementById('signup-name').value.trim();
-            const email = document.getElementById('signup-email').value.trim().toLowerCase();
-            const role = document.getElementById('signup-role').value;
-            const code = document.getElementById('signup-code').value.trim();
-            const pass = document.getElementById('signup-password').value.trim();
-            const errorBox = document.getElementById('login-error');
-
-            if (!name || !email || !pass) {
-                errorBox.textContent = "Please fill in all standard registration fields.";
-                errorBox.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                // Submit payloads over SSL straight to the encrypted server backend
-                const response = await fetch('/api/db-signup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: name, 
-                        email: email, 
-                        role: role, 
-                        password: pass, 
-                        schoolCode: role === 'Student' ? 'AMZN-TLEVEL' : code 
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert(`Registration successful!`);
-                    toggleAuthView(false);
-                    document.getElementById('login-email').value = email;
-                } else {
-                    errorBox.textContent = result.error;
-                    errorBox.classList.remove('hidden');
-                }
-            } catch (err) {
-                errorBox.textContent = "Could not reach the registration server.";
-                errorBox.classList.remove('hidden');
-            }
-        }
-
-        // SECURE AUTHENTICATION VIA SERVER API
-        async function handlePortalLoginVerification() {
-            const emailInput = document.getElementById('login-email').value.trim().toLowerCase();
-            const passInput = document.getElementById('login-password').value.trim();
-            const errorBox = document.getElementById('login-error');
-
-            if (!emailInput || !passInput) {
-                errorBox.textContent = "Please fill in all tracking credentials.";
-                errorBox.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/db-login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: emailInput, password: passInput })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    localStorage.setItem('activeSession', result.name);
-                    
-                    
-                    // ASSIGN A CRYPTOGRAPHIC ACCESS TOKEN BOUND TO THE ACCOUNT LEVEL
-                    if (result.role === 'IT Staff' || result.role === 'Teacher') {
-                        localStorage.setItem('system_auth_checksum', 'sec_tok_0a4f6d'); // Admin clearance
-                        window.location.href = './admin.html';
-                    } else {
-                        localStorage.setItem('system_auth_checksum', 'sec_tok_8f92a1'); // Standard user
-                        window.location.href = './dashboard.html';
-                    }
-                } else {
-                    errorBox.textContent = result.error;
-                    errorBox.classList.remove('hidden');
-                }
-            } catch (error) {
-                errorBox.textContent = "Could not authenticate with the live backend database.";
-                errorBox.classList.remove('hidden');
-            }
-        }
-
-        function applyGlobalAccessibilityStateTokens() {
-            const body = document.getElementById('dashboard-global-body');
-            const textScale = localStorage.getItem('access_text_scale') || 'small';
-            const contrastMode = localStorage.getItem('access_contrast_mode') === 'true';
-
-            body.classList.remove('text-sm', 'text-base', 'text-lg');
-            if (textScale === 'large') body.classList.add('text-base');
-            else if (textScale === 'xlarge') body.classList.add('text-lg');
-            else body.classList.add('text-sm');
-
-            if (contrastMode) {
-                body.style.filter = "contrast(1.15) saturate(1.05)";
-            } else {
-                body.style.filter = "none";
-            }
-        }
-    </script>
+    
 </body>
 </html>
